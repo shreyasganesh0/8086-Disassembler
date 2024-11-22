@@ -2,7 +2,7 @@ const std = @import("std");
 const dir = std.fs.cwd();
 const Error = error{ FileNotFound, PermissionDenied, InvalidInput };
 
-pub fn regmem_to_reg(stream, buf) !void{
+pub fn regmem_to_reg(stream:*std.io.Reader, buf:[1]u8, write_file:*std.io.Writer) !void{
         const d_mask: u8 = 0b000000_1_0;
         const w_mask: u8 = 0b000000_0_1;
         var d: bool = undefined;
@@ -11,8 +11,8 @@ pub fn regmem_to_reg(stream, buf) !void{
         d = buf[0] & d_mask > 0;
         w = buf[0] & w_mask > 0;
         
-        var buf:[1]u8 = undefined;
-        try stream.read(&buf);
+        var buf_local:[1]u8 = undefined;
+        try stream.read(&buf_local);
 
         var reg = [_]u8{ 0, 0 };
         var rm = [_]u8{ 0, 0 };
@@ -31,14 +31,15 @@ pub fn regmem_to_reg(stream, buf) !void{
         0b10_000000 => mem_16_disp(buf[0], rm_mask, &rm, stream),
 
 }
+
         if (d) {
-            try write_file.writer().print("{s} {},{}\n", .{ opcode, rm, reg });
+            try write_file.writer().print("mov {},{}\n", .{ rm, reg });
         } else {
-            try write_file.writer().print("{s} {},{}\n", .{ opcode, reg, rm });
+            try write_file.writer().print("mov {},{}\n", .{ reg, rm });
         }
 }
 
-pub fn direct_addressing(stream: [_]u8, disp_flag:bool) ![_]u8{
+pub fn direct_addressing(stream: *std.io.Reader, disp_flag:bool) ![]u8{
         if(disp_flag){
         var result:u8 = undefined;
         var buf:[1]u8 = undefined;
@@ -52,7 +53,7 @@ pub fn direct_addressing(stream: [_]u8, disp_flag:bool) ![_]u8{
         @memcpy(result, buf);
         return result;
 }
-pub fn mem_no_disp(bufval: u8, mask: u8, name: *[2]u8, stream) !void {
+pub fn mem_no_disp(bufval: u8, mask: u8, name: *[2]u8, stream: *std.io.Reader)!void {
         @memcpy(name, switch (bufval & mask) {
             0b00_000_000 => "[bx + si]",
             0b00_000_001 => "[bx + di]",
@@ -60,21 +61,34 @@ pub fn mem_no_disp(bufval: u8, mask: u8, name: *[2]u8, stream) !void {
             0b00_000_011 => "[bp + di]",
             0b00_000_100 => "[si]",
             0b00_000_101 => "[di]",
-            0b00_000_110 => direct_addressing(stream),
+            0b00_000_110 => direct_addressing(&stream, false),
             0b00_000_111 => "[bx]",
             else => unreachable,
         });
 }
-pub fn mem_8_disp(bufval: u8, mask: u8, name: *[2]u8) !void {
+pub fn mem_8_disp(bufval: u8, mask: u8, name: *[2]u8, stream: *std.io.Reader) !void {
         @memcpy(name, switch (bufval & mask) {
-            0b00_000_000 => "[bx + si",
-            0b00_000_001 => "[bx + di",
-            0b00_000_010 => "[bp + si",
-            0b00_000_011 => "[bp + di",
-            0b00_000_100 => "[si",
-            0b00_000_101 => "[di",
-            0b00_000_110 => "[bp",
-            0b00_000_111 => "[bx",
+            0b00_000_000 => print("[bx + si + {}",.{direct_addressing(&stream,true)}),
+            0b00_000_001 => print("[bx + di + {}",.{direct_addressing(&stream,true)}),
+            0b00_000_010 => print("[bx + di + {}",.{direct_addressing(&stream,true)}),
+            0b00_000_011 => print("[bx + di + {}",.{direct_addressing(&stream,true)}),
+            0b00_000_100 => print("[si + {}",.{direct_addressing(&stream,true)}),
+            0b00_000_101 => print("[di + {}",.{direct_addressing(&stream,true)}),
+            0b00_000_110 => print("[bp + {}",.{direct_addressing(&stream,true)}),
+            0b00_000_111 => print("[bx + {}",.{direct_addressing(&stream,true)}),
+            else => unreachable,
+        });
+}
+pub fn mem_16_disp(bufval: u8, mask: u8, name: *[2]u8, stream: *std.io.Reader)!void {
+        @memcpy(name, switch (bufval & mask) {
+            0b00_000_000 => print("[bx + si + {}",.{direct_addressing(&stream,false)}),
+            0b00_000_001 => print("[bx + di + {}",.{direct_addressing(&stream,false)}),
+            0b00_000_010 => print("[bx + di + {}",.{direct_addressing(&stream,false)}),
+            0b00_000_011 => print("[bx + di + {}",.{direct_addressing(&stream,false)}),
+            0b00_000_100 => print("[si + {}",.{direct_addressing(&stream,false)}),
+            0b00_000_101 => print("[di + {}",.{direct_addressing(&stream,false)}),
+            0b00_000_110 => print("[bp + {}",.{direct_addressing(&stream,false)}),
+            0b00_000_111 => print("[bx + {}",.{direct_addressing(&stream,false)}),
             else => unreachable,
         });
 }
@@ -105,34 +119,6 @@ pub fn default_reg(bufval: u8, mask: u8, w: bool, name: *[2]u8) !void {
         });
     }
 }
-pub fn default_reg(bufval: u8, mask: u8, w: bool, name: *[2]u8) !void {
-    if (w) {
-        @memcpy(name, switch (bufval & mask) {
-            0b00_000_000 => "ax",
-            0b00_000_001 => "cx",
-            0b00_000_010 => "dx",
-            0b00_000_011 => "bx",
-            0b00_000_100 => "sp",
-            0b00_000_101 => "bp",
-            0b00_000_110 => "si",
-            0b00_000_111 => "di",
-            else => unreachable,
-        });
-    } else {
-        @memcpy(name, switch (bufval & mask) {
-            0b00_000_000 => "al",
-            0b00_000_001 => "cl",
-            0b00_000_010 => "dl",
-            0b00_000_011 => "bl",
-            0b00_000_100 => "ah",
-            0b00_000_101 => "ch",
-            0b00_000_110 => "dh",
-            0b00_000_111 => "bh",
-            else => unreachable,
-        });
-    }
-}
-
 pub fn main() !void {
     const file_path = "Asm_files/listing_0038_many_register_mov";
     var file = try dir.openFile(file_path, .{});
@@ -148,7 +134,7 @@ pub fn main() !void {
 
     var buf: [1]u8 = undefined;
 
-    try stream.read(&buf) 
+    try stream.read(&buf); 
         std.debug.print("{b} \n", .{buf[0]});
 
         var opcode: [3]u8 = undefined;
@@ -156,19 +142,15 @@ pub fn main() !void {
         const imm_to_reg_bitmask:u8 = 0b1111_0000;
 
         if(buf[0]&imm_to_reg_bitmask == 0b1011_0000){
-            imm_to_reg(stream,buf);
+            imm_to_reg(&stream,buf, &write_file);
         }
 
-    switch(buf[0]){
-        0b100010_00 => regmem_to_reg(stream,buf),
-        0b110001_00 => immediate_to_regmem(stream,buf),
-        0b101000_00 => acc_to_mem(stream, buf),
-        0b100011_00 => regmem_to_segreg(stream,buf),
-        
-
-        if ((buf[0] & bitmask) == mov) {
-            opcode = "mov".*;
-        }
-
+    switch(buf[0]&opcode_bitmask){
+        0b100010_00 => regmem_to_reg(&stream,buf, &write_file),
+        0b110001_00 => immediate_to_regmem(&stream,buf, &write_file),
+        0b101000_00 => acc_to_mem(&stream, buf, &write_file),
+        0b100011_00 => regmem_to_segreg(&stream,buf,&write_file),
+        else => unreachable,
     }
+
 }
