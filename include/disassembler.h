@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 typedef uint8_t  u8; 
 typedef uint16_t u16;
@@ -20,15 +23,20 @@ typedef int32_t b32;
 
 
 char reg_table[][2][3] = {
-    [0b000] = {"AL", "AX"},
-    [0b001] = {"CL", "CX"},
-    [0b010] = {"DL", "DX"},
-    [0b011] = {"BL", "BX"},
-    [0b100] = {"AH", "SP"},
-    [0b101] = {"CH", "BP"},
-    [0b110] = {"DH", "SI"},
-    [0b111] = {"BH", "DI"},
+    [0] = {"AL", "AX"},
+    [1] = {"CL", "CX"},
+    [2] = {"DL", "DX"},
+    [3] = {"BL", "BX"},
+    [4] = {"AH", "SP"},
+    [5] = {"CH", "BP"},
+    [6] = {"DH", "SI"},
+    [7] = {"BH", "DI"},
 };
+
+typedef struct {
+    char *start_p;
+    char *curr_p;
+} out_buf_t;
 
 #define BIT(n) (1U << n)
 
