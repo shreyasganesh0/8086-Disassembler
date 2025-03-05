@@ -23,14 +23,14 @@ typedef int32_t b32;
 
 
 char reg_table[][2][3] = {
-    [0] = {"AL", "AX"},
-    [1] = {"CL", "CX"},
-    [2] = {"DL", "DX"},
-    [3] = {"BL", "BX"},
-    [4] = {"AH", "SP"},
-    [5] = {"CH", "BP"},
-    [6] = {"DH", "SI"},
-    [7] = {"BH", "DI"},
+    [0] = {"al", "ax"},
+    [1] = {"cl", "cx"},
+    [2] = {"dl", "dx"},
+    [3] = {"bl", "bx"},
+    [4] = {"ah", "sp"},
+    [5] = {"ch", "bp"},
+    [6] = {"dh", "si"},
+    [7] = {"bh", "di"},
 };
 
 typedef struct {
@@ -38,15 +38,15 @@ typedef struct {
     char *curr_p;
 } out_buf_t;
 
-#define BIT(n) (1U << n)
+#define BIT(n) (1 << n)
 
-#define D_mask BIT(2)
+#define D_mask BIT(1)
 
-#define MOD_mask (BIT(8)|BIT(7))
+#define MOD_mask (BIT(7)|BIT(6))
 
-#define reg_mask (BIT(6)|BIT(5)|BIT(4))
+#define reg_mask (BIT(5)|BIT(4)|BIT(3))
 
-#define rm_mask (BIT(3)|BIT(2)|BIT(1))
+#define rm_mask (BIT(2)|BIT(1)|BIT(0))
 
 #define W_mask 1
 #endif

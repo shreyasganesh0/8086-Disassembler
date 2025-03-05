@@ -20,28 +20,23 @@ int main(int argc, char *argv[]) {
     
     while ((bytes_read = read(fd, inst_buf, sizeof(inst_buf))) > 0) {
 
-        u8 D = (int)inst_buf[0]&D_mask;    
+        u8 D = ((u8)inst_buf[0]&D_mask) >> 1;    
 
-        u8 W = (int)inst_buf[0]&W_mask;
+        u8 W = (u8)inst_buf[0]&W_mask;
 
-        u8 MOD = (int)inst_buf[1]&MOD_mask;
+        u8 MOD = ((u8)inst_buf[1]&MOD_mask) >> 6;
 
-        u8 reg = (int)inst_buf[1]&reg_mask;
+        u8 reg = ((u8)inst_buf[1]&reg_mask) >> 3;
 
-        u8 rm = (int)inst_buf[1]&rm_mask;
+        u8 rm = ((u8)inst_buf[1]&rm_mask);
 
         if (W) {
-            sprintf(out_buf->curr_p, "MOV %s, %s\n", reg_table[reg][W], reg_table[rm][W]); 
+            printf("mov %s, %s\n", reg_table[rm][W], reg_table[reg][W]); 
         } else {
-            sprintf(out_buf->curr_p, "MOV %s, %s\n", reg_table[rm][W], reg_table[reg][W]); 
+            printf("mov %s, %s\n", reg_table[reg][W], reg_table[rm][W]); 
         }
 
-        out_buf->curr_p += 11;
     }
 
-    out_buf->curr_p = '\0';
-    int size = out_buf->curr_p - out_buf->start_p;
-    
-    write(1, out_buf->start_p, size); 
     return 0;
 }
