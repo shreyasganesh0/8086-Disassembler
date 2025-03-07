@@ -33,6 +33,17 @@ char reg_table[][2][3] = {
     [7] = {"bh", "di"},
 };
 
+typedef enum {
+    RM_REG,
+    IMM_REG,
+} inst_name;
+
+typedef struct {
+    inst_name type;
+    u8 *inst_buf;
+} inst_t;
+
+
 typedef struct {
     char *start_p;
     char *curr_p;
@@ -49,4 +60,8 @@ typedef struct {
 #define rm_mask (BIT(2)|BIT(1)|BIT(0))
 
 #define W_mask 1
+
+#define RM_REG_mask (BIT(7)|BIT(3))
+
+#define IMM_REG_mask (BIT(7)|BIT(5)|BIT(4))
 #endif

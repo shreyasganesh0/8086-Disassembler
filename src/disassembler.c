@@ -8,17 +8,41 @@ int main(int argc, char *argv[]) {
         printf("Failed to read file\n");
     }
 
-    u8 inst_buf[2];
+    u8 inst_buf[4];
     ssize_t bytes_read; 
 
     out_buf_t *out_buf;
 
     printf("bits 16\n");
 
-    out_buf->curr_p = malloc(4096); 
-    out_buf->start_p = out_buf->curr_p;
+    int offset = 0;
+    int curr_bytes = 0;
     
     while ((bytes_read = read(fd, inst_buf, sizeof(inst_buf))) > 0) {
+        curr_bytes += 4; 
+
+        if (inst_buf[0]&RM_REG_mask == 0x88) {
+
+            offset = rm_to_reg(inst_buf);
+
+        } else if (inst_buf[0]&IMM_REG_mask == 0xB0) {
+            
+            offset = imm_reg(inst_buf);
+
+        } else {
+            printf("Misread bytes\n");
+        }
+
+        if (offset) {
+            lseek(fd, SEEK_SET, curr_bytes - offset);
+        }
+
+    }
+
+    return 0;
+}
+
+int rm_to_reg(u8 *inst) {
 
         u8 D = ((u8)inst_buf[0]&D_mask) >> 1;    
 
@@ -35,8 +59,11 @@ int main(int argc, char *argv[]) {
         } else {
             printf("mov %s, %s\n", reg_table[reg][W], reg_table[rm][W]); 
         }
-
-    }
-
-    return 0;
 }
+
+int imm_reg(u8 *inst) {
+
+    u8 W = ((u8)inst[0]&
+
+    
+
