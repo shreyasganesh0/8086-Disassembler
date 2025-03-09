@@ -44,26 +44,44 @@ int main(int argc, char *argv[]) {
 
 int rm_to_reg(u8 *inst) {
 
-        u8 D = ((u8)inst_buf[0]&D_mask) >> 1;    
+    u8 D = ((u8)inst_buf[0]&D_mask) >> 1;    
 
-        u8 W = (u8)inst_buf[0]&W_mask;
+    u8 W = (u8)inst_buf[0]&W_mask;
 
-        u8 MOD = ((u8)inst_buf[1]&MOD_mask) >> 6;
+    u8 MOD = ((u8)inst_buf[1]&MOD_mask) >> 6;
 
-        u8 reg = ((u8)inst_buf[1]&reg_mask) >> 3;
+    u8 reg = ((u8)inst_buf[1]&reg_mask) >> 3;
 
-        u8 rm = ((u8)inst_buf[1]&rm_mask);
+    u8 rm = ((u8)inst_buf[1]&rm_mask);
 
-        if (W) {
-            printf("mov %s, %s\n", reg_table[rm][W], reg_table[reg][W]); 
-        } else {
-            printf("mov %s, %s\n", reg_table[reg][W], reg_table[rm][W]); 
-        }
+    if (W) {
+        printf("mov %s, %s\n", reg_table[rm][W], reg_table[reg][W]); 
+    } else {
+        printf("mov %s, %s\n", reg_table[reg][W], reg_table[rm][W]); 
+    }
+
+    return W;
 }
 
 int imm_reg(u8 *inst) {
 
-    u8 W = ((u8)inst[0]&
+    u8 W = ((u8)inst[0]&W_imm_mask) >> 3;
+    u8 reg = ((u8)inst[0]&reg_imm_mask);
+
+    if (W) {
+        s16 data = inst[1];
+        data = data << 8;
+        data = data|inst[2];
+        printf("mov %s, %d\n", reg_table[reg][W], data);
+    } else {
+        s8 data = inst[1];
+        printf("mov %s, %d\n", reg_table[reg][W], data);
+    }
+
+    return W;
+}
+
+    
 
     
 

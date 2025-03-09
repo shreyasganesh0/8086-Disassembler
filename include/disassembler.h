@@ -61,6 +61,10 @@ typedef struct {
 
 #define W_mask 1
 
+#define W_imm_mask (BIT(3))
+
+#define REG_imm_mask (BIT(2)|BIT(1)|1)
+
 #define RM_REG_mask (BIT(7)|BIT(3))
 
 #define IMM_REG_mask (BIT(7)|BIT(5)|BIT(4))
